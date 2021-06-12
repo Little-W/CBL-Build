@@ -84,9 +84,8 @@ function setup_krnl_src() {
     if [[ -n ${KERNEL_SRC} ]]; then
         cd "${KERNEL_SRC}" || exit 1
     else
-        LINUX=linux-5.12
+        LINUX=linux-5.12.9
         LINUX_TARBALL=${KRNL}/${LINUX}.tar.xz
-        LINUX_PATCH=${KRNL}/${LINUX}-${CONFIG_TARGET}.patch
 
         # If we don't have the source tarball, download and verify it
         if [[ ! -f ${LINUX_TARBALL} ]]; then
@@ -102,10 +101,16 @@ function setup_krnl_src() {
         fi
 
         # If there is a patch to apply, remove the folder so that we can patch it accurately (we cannot assume it has already been patched)
-        [[ -f ${LINUX_PATCH} ]] && rm -rf ${LINUX}
+        PATCH_FILES=()
+        for SRC_FILE in "${KRNL}"/*; do
+            [[ ${SRC_FILE##*/} = *.patch ]] && PATCH_FILES+=("${SRC_FILE}")
+        done
+        [[ -n "${PATCHES[*]}" ]] && rm -rf ${LINUX}
         [[ -d ${LINUX} ]] || { tar -xf "${LINUX_TARBALL}" || exit ${?}; }
         cd ${LINUX} || exit 1
-        [[ -f ${LINUX_PATCH} ]] && { patch -p1 <"${LINUX_PATCH}" || exit ${?}; }
+        for PATCH_FILE in "${PATCH_FILES[@]}"; do
+            patch -p1 <"${PATCH_FILE}" || exit ${?}
+        done
     fi
 }
 
@@ -163,12 +168,22 @@ function build_kernels() {
     for TARGET in "${TARGETS[@]}"; do
         case ${TARGET} in
             "arm-linux-gnueabi")
-                time \
-                    "${MAKE[@]}" \
-                    ARCH=arm \
-                    CROSS_COMPILE="${TARGET}-" \
-                    KCONFIG_ALLCONFIG=<(echo CONFIG_CPU_BIG_ENDIAN=n) \
-                    distclean "${CONFIG_TARGET}" zImage modules || exit ${?}
+                case ${CONFIG_TARGET} in
+                    defconfig)
+                        CONFIGS=(multi_v5_defconfig aspeed_g5_defconfig multi_v7_defconfig)
+                        ;;
+                    *)
+                        CONFIGS=("${CONFIG_TARGET}")
+                        ;;
+                esac
+                for CONFIG in "${CONFIGS[@]}"; do
+                    time \
+                        "${MAKE[@]}" \
+                        ARCH=arm \
+                        CROSS_COMPILE="${TARGET}-" \
+                        KCONFIG_ALLCONFIG=<(echo CONFIG_CPU_BIG_ENDIAN=n) \
+                        distclean "${CONFIG}" all || exit ${?}
+                done
                 ;;
             "aarch64-linux-gnu")
                 time \
@@ -176,21 +191,21 @@ function build_kernels() {
                     ARCH=arm64 \
                     CROSS_COMPILE="${TARGET}-" \
                     KCONFIG_ALLCONFIG=<(echo CONFIG_CPU_BIG_ENDIAN=n) \
-                    distclean "${CONFIG_TARGET}" Image.gz modules || exit ${?}
+                    distclean "${CONFIG_TARGET}" all || exit ${?}
                 ;;
             "mipsel-linux-gnu")
                 time \
                     "${MAKE[@]}" \
                     ARCH=mips \
                     CROSS_COMPILE="${TARGET}-" \
-                    distclean malta_defconfig vmlinux modules || exit ${?}
+                    distclean malta_defconfig all || exit ${?}
                 ;;
             "powerpc-linux-gnu")
                 time \
                     "${MAKE[@]}" \
                     ARCH=powerpc \
                     CROSS_COMPILE="${TARGET}-" \
-                    distclean ppc44x_defconfig zImage modules || exit ${?}
+                    distclean ppc44x_defconfig all || exit ${?}
                 ;;
             "powerpc64-linux-gnu")
                 time \
@@ -198,14 +213,14 @@ function build_kernels() {
                     ARCH=powerpc \
                     LD="${TARGET}-ld" \
                     CROSS_COMPILE="${TARGET}-" \
-                    distclean pseries_defconfig disable-werror.config vmlinux modules || exit ${?}
+                    distclean pseries_defconfig disable-werror.config all || exit ${?}
                 ;;
             "powerpc64le-linux-gnu")
                 time \
                     "${MAKE[@]}" \
                     ARCH=powerpc \
                     CROSS_COMPILE="${TARGET}-" \
-                    distclean powernv_defconfig zImage.epapr modules || exit ${?}
+                    distclean powernv_defconfig all || exit ${?}
                 ;;
             "riscv64-linux-gnu")
                 RISCV_MAKE=(
@@ -218,7 +233,7 @@ function build_kernels() {
                 time "${RISCV_MAKE[@]}" distclean defconfig || exit ${?}
                 # https://github.com/ClangBuiltLinux/linux/issues/1143
                 grep -q "config EFI" arch/riscv/Kconfig && scripts/config --file out/.config -d EFI
-                time "${RISCV_MAKE[@]}" Image.gz modules || exit ${?}
+                time "${RISCV_MAKE[@]}" all || exit ${?}
                 ;;
             "s390x-linux-gnu")
                 time \
@@ -228,12 +243,12 @@ function build_kernels() {
                     LD="${TARGET}-ld" \
                     OBJCOPY="${TARGET}-objcopy" \
                     OBJDUMP="${TARGET}-objdump" \
-                    distclean defconfig bzImage modules || exit ${?}
+                    distclean defconfig all || exit ${?}
                 ;;
             "x86_64-linux-gnu")
                 time \
                     "${MAKE[@]}" \
-                    distclean "${CONFIG_TARGET}" bzImage modules || exit ${?}
+                    distclean "${CONFIG_TARGET}" all || exit ${?}
                 ;;
         esac
     done
