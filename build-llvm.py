@@ -17,7 +17,7 @@ from urllib.error import URLError
 
 # This is a known good revision of LLVM for building the kernel
 # To bump this, run 'PATH_OVERRIDE=<path_to_updated_toolchain>/bin kernel/build.sh --allyesconfig'
-GOOD_REVISION = 'ecdae5df7da03c56d72796c0b1629edd0995548e'
+GOOD_REVISION = '09ac3523b6729c9300e044081c442c304602cfd9'
 
 
 class Directories:
@@ -843,11 +843,12 @@ def project_cmake_defines(args, stage):
             projects = "clang;lld"
             if args.pgo:
                 projects += ';compiler-rt'
+        elif instrumented_stage(args, stage):
+            projects = "clang;lld"
+        elif args.projects:
+            projects = args.projects
         else:
-            if instrumented_stage(args, stage):
-                projects = "clang;lld"
-            else:
-                projects = "clang;compiler-rt;lld;polly"
+            projects = "clang;compiler-rt;lld;polly"
 
     defines['LLVM_ENABLE_PROJECTS'] = projects
 
