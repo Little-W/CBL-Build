@@ -1,0 +1,12 @@
+version: 1.0.{build}
+image: Ubuntu2004
+clone_depth: 1
+test_script:
+- echo "-----BEGIN OPENSSH PRIVATE KEY-----" >> ~/.ssh/id_rsa
+- echo "$SSH_PRI" >> ~/.ssh/id_rsa
+- echo "-----END OPENSSH PRIVATE KEY-----" >> ~/.ssh/id_rsa
+- chmod 600  ~/.ssh/id_rsa
+- bash ci.sh deps
+- bash ci.sh build
+- bash ci.sh upload
+build: off
