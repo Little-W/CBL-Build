@@ -47,23 +47,19 @@ function do_deps() {
         texinfo \
         xz-utils \
         zlib1g-dev
-    git clone --depth 1 https://github.com/Little-W/proton-clang tc
+    git clone --depth 1 git@github.com:Little-W/Sakura-CBL.git tc
     git config --global user.email "1405481963@qq.com"
     git config --global user.name "Little-W"
+	sudo dd if=/dev/zero of=/swapfile bs=1M count=40960
+	sudo mkswap /swapfile
+	sudo swapon /swapfile
 }
 function do_build() {
-    ./build-llvm.py \
-        --no-update \
-    	--clang-vendor "Sakura" \
-    	--targets "ARM;AArch64;X86" \
-	    --shallow-clone \
-	    --lto thin \
-	    --incremental \
-	    --pgo kernel-defconfig
-     #	--build-stage1-only \
-    #	--install-stage1-only \
-     #	--projects "clang;compiler-rt;lld;polly" \
-    	#--branch "release/12.x" 
+./build-llvm.py \
+	--clang-vendor "Sakura-🌸" \
+	--targets "ARM;AArch64;X86" \
+	--lto thin \
+	--pgo kernel-defconfig
  
     ./build-binutils.py --targets arm aarch64 x86_64 
       # Remove unused products
