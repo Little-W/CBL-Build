@@ -1,0 +1,16 @@
+version: 2.1
+jobs:
+  build:
+    machine:
+      image: ubuntu-2004:202111-02
+    steps: 
+            - checkout
+            - run: 
+                name: Install Deps
+                command: bash ci.sh deps
+            - run: 
+                name: Build Toolchain
+                command: bash ci.sh build
+            - run: 
+                name: Upload
+                command: bash ci.sh upload
