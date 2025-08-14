@@ -22,7 +22,6 @@ set -eu
     --install-folder "$install" \
     --install-target distribution \
     --quiet-cmake \
-    --use-good-revision \
     --no-update \
     --show-build-commands \
     --pgo kernel-defconfig \
