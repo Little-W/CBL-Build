@@ -455,7 +455,6 @@ if args.bolt or (args.pgo and [x for x in args.pgo if 'kernel' in x]):
         lsm.tarball.base_download_url = 'https://cdn.kernel.org/pub/linux/kernel/v6.x'
         lsm.tarball.local_location = lsm.location.with_name(f"{lsm.location.name}.tar.xz")
         lsm.tarball.remote_checksum_name = 'sha256sums.asc'
-            "https://github.com/llvm/llvm-project",
 
         tc_build.utils.print_header('Preparing Linux source for profiling runs')
         lsm.prepare()

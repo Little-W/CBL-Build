@@ -1,18 +1,47 @@
-name: Build test
+name: Build
+
 on:
+  workflow_dispatch:
   push:
     branches:
-      - main
+      - rv_test
+  pull_request:
+    branches:
+      - rv_test
+
 jobs:
-  build-test:
+  setup_swap:
+    name: Setup swap space
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Install dependencies
-      run: bash ci.sh deps
-    - name: Build LLVM
-      run: bash ci.sh llvm
-    - name: Build binutils
-      run: bash ci.sh binutils
-    - name: Build kernel
-      run: bash ci.sh kernel
+      - uses: actionhippie/swap-space@v1
+        with:
+          size: 20G
+
+  build:
+    runs-on: ${{ matrix.os }}
+    needs: [setup_swap]
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: bash deps.sh
+
+      - name: Build project
+        run: bash build.sh
+
+      - name: Tarball build
+        run: |
+          tar czvf build-output-${{ matrix.os }}.tar.gz ./install
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-output-${{ matrix.os }}
+          path: build-output-${{ matrix.os }}.tar.gz
+          if-no-files-found: warn
+          compression-level: 6
+          overwrite: false
+          include-hidden-files: false
