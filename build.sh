@@ -19,6 +19,7 @@ set -eu
     --install-folder "$install" \
     --quiet-cmake \
     --no-update \
+    --projects clang compiler-rt lld polly \
     --shallow-clone \
     --show-build-commands \
     --pgo kernel-defconfig \
