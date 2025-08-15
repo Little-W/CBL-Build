@@ -9,23 +9,20 @@ src=$base/src
 
 # 设置 ccache 缓存目录在当前项目文件夹中
 export CCACHE_DIR="$base/ccache"
-export CC=clang
-export CXX=clang++
 
 set -eu
 
 # 执行构建 LLVM 工具链的命令，并启用 PGO (Profile-Guided Optimization)
 "$base"/build-llvm.py \
     --vendor-string "Sakura-🌸-RISCV" \
-    --build-target distribution \
     --install-folder "$install" \
-    --install-target distribution \
     --quiet-cmake \
     --no-update \
     --shallow-clone \
     --show-build-commands \
-    --no-ccache \
+    --pgo kernel-defconfig \
     --targets RISCV
+
 
 "$base"/build-binutils.py \
     --install-folder "$install" \
