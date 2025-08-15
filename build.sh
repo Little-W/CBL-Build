@@ -23,8 +23,9 @@ set -eu
     --install-target distribution \
     --quiet-cmake \
     --no-update \
+    --shallow-clone \
     --show-build-commands \
-    --pgo kernel-defconfig \
+    --no-ccache \
     --targets RISCV
 
 "$base"/build-binutils.py \

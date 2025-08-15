@@ -81,7 +81,7 @@ else:
     folder_name = 'binutils-' + '.'.join(str(x) for x in LATEST_BINUTILS_RELEASE if x)
 
     bsm.location = Path(tc_build_folder, 'src', folder_name)
-    bsm.tarball.base_download_url = 'https://sourceware.org/pub/binutils/releases'
+    bsm.tarball.base_download_url = 'https://mirrors.tuna.tsinghua.edu.cn/sourceware/binutils/releases/'
     bsm.tarball.local_location = bsm.location.with_name(f"{folder_name}.tar.xz")
     bsm.tarball_remote_checksum_name = 'sha512.sum'
     bsm.prepare()
@@ -106,12 +106,37 @@ targets_to_builder = {
     'powerpc64': tc_build.binutils.PowerPC64BinutilsBuilder,
     'powerpc64le': tc_build.binutils.PowerPC64LEBinutilsBuilder,
     'riscv64': tc_build.binutils.RISCV64BinutilsBuilder,
+    'riscv64-unknown-elf': tc_build.binutils.RISCVBaremetalBinutilsBuilder,
+    'riscv64-unknown-elf-multilib': tc_build.binutils.RISCVBaremetalMultilibBinutilsBuilder,
     's390x': tc_build.binutils.S390XBinutilsBuilder,
     'x86_64': tc_build.binutils.X8664BinutilsBuilder,
 }
 if 'loongarch64' in default_targets:
     targets_to_builder['loongarch64'] = tc_build.binutils.LoongArchBinutilsBuilder
 for item in targets:
+    # 支持 riscv64-unknown-elf 形式的裸机目标和 multilib
+    if item == 'riscv64-unknown-elf':
+        builder = tc_build.binutils.RISCVBaremetalBinutilsBuilder()
+        builder.folders.build = Path(build_folder, 'riscv64-unknown-elf')
+        if args.install_folder:
+            builder.folders.install = Path(args.install_folder).resolve()
+        builder.folders.source = bsm.location
+        if args.march:
+            builder.cflags.append(f"-march={args.march}")
+        builder.show_commands = args.show_build_commands
+        builder.build()
+        continue
+    if item == 'riscv64-unknown-elf-multilib':
+        builder = tc_build.binutils.RISCVBaremetalMultilibBinutilsBuilder()
+        builder.folders.build = Path(build_folder, 'riscv64-unknown-elf-multilib')
+        if args.install_folder:
+            builder.folders.install = Path(args.install_folder).resolve()
+        builder.folders.source = bsm.location
+        if args.march:
+            builder.cflags.append(f"-march={args.march}")
+        builder.show_commands = args.show_build_commands
+        builder.build()
+        continue
     target = item.split('-', maxsplit=1)[0]
     if target in targets_to_builder:
         builder = targets_to_builder[target]()
@@ -121,11 +146,6 @@ for item in targets:
         builder.folders.source = bsm.location
         if args.march:
             builder.cflags.append(f"-march={args.march}")
-            # -march implies -mtune except for x86-64-v{2,3,4}, which are
-            # documented to imply -mtune=generic. If the user has requested one
-            # of these values, it is a safe assumption they only care about
-            # running on their machine, so add -mtune=native to further
-            # optimize the toolchain for their machine.
             if 'x86-64-v' in args.march:
                 builder.cflags.append('-mtune=native')
         builder.show_commands = args.show_build_commands

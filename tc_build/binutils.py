@@ -174,11 +174,42 @@ class PowerPC64LEBinutilsBuilder(StandardBinutilsBuilder):
         self.target = 'powerpc64le-linux-gnu'
 
 
-class RISCV64BinutilsBuilder(StandardBinutilsBuilder):
 
+
+# 支持rv32/rv64裸机多架构（multilib）binutils构建器
+class RISCVBaremetalMultilibBinutilsBuilder(BinutilsBuilder):
     def __init__(self):
         super().__init__()
+        self.native_arch = 'riscv64'
+        self.target = 'riscv64-unknown-elf'
+        self.extra_targets = [
+            'riscv32-unknown-elf',
+            'riscv64-unknown-elf',
+        ]
+        self.configure_flags += [
+            '--enable-multilib',
+            '--with-gnu-as',
+            '--with-gnu-ld',
+            '--disable-sim',
+        ]
 
+# 仅rv64裸机（无multilib）
+class RISCVBaremetalBinutilsBuilder(BinutilsBuilder):
+    def __init__(self):
+        super().__init__()
+        self.native_arch = 'riscv64'
+        self.target = 'riscv64-unknown-elf'
+        self.configure_flags += [
+            '--disable-multilib',
+            '--with-gnu-as',
+            '--with-gnu-ld',
+            '--disable-sim',
+        ]
+
+# 兼容原有 Linux 目标
+class RISCV64BinutilsBuilder(StandardBinutilsBuilder):
+    def __init__(self):
+        super().__init__()
         self.native_arch = 'riscv64'
         self.target = 'riscv64-linux-gnu'
 
