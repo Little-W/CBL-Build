@@ -15,6 +15,7 @@ set -eu
 # 执行构建 LLVM 工具链的命令，并启用 PGO (Profile-Guided Optimization)
 "$base"/build-llvm.py \
     --vendor-string "Sakura-🌸-RISCV" \
+    --lto thin \
     --install-folder "$install" \
     --quiet-cmake \
     --no-update \
