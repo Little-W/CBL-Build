@@ -287,8 +287,29 @@ class LLVMBuilder(Builder):
         if self.tools.llvm_tblgen:
             self.cmake_defines['LLVM_TABLEGEN'] = self.tools.llvm_tblgen
         self.cmake_defines['LLVM_TARGETS_TO_BUILD'] = ';'.join(self.targets)
+        # 修正LLVM_USE_LINKER传递绝对路径导致Clang报错的问题
         if self.tools.ld:
-            self.cmake_defines['LLVM_USE_LINKER'] = self.tools.ld
+            ld_path = str(self.tools.ld)
+            # 如果是ld.lld的绝对路径，自动转为lld并加PATH
+            if os.path.isabs(ld_path) and os.path.basename(ld_path) == 'ld.lld':
+                # 将bootstrap/bin加入PATH前
+                bin_dir = os.path.dirname(ld_path)
+                os.environ['PATH'] = bin_dir + os.pathsep + os.environ.get('PATH', '')
+                self.cmake_defines['LLVM_USE_LINKER'] = 'lld'
+                # 测试该ld.lld能否正常用
+                try:
+                    print(f"[LLVM_USE_LINKER] Testing ld.lld at {ld_path} ...")
+                    subprocess.run(["ld.lld", '--version'], check=True)
+                    # 试编译一个简单程序
+                    test_c = 'int main(void) { return 0; }'
+                    cc = self.tools.cc
+                    test_cmd = [cc, f'-fuse-ld=lld', '-o', '/dev/null', '-x', 'c', '-']
+                    subprocess.run(test_cmd, input=test_c, text=True, check=True, capture_output=True)
+                    print(f"[LLVM_USE_LINKER] ld.lld usable with {cc}")
+                except Exception as e:
+                    print(f"[LLVM_USE_LINKER] ld.lld test failed: {e}")
+            else:
+                self.cmake_defines['LLVM_USE_LINKER'] = self.tools.ld
 
         # Clear Linux needs a different target to find all of the C++ header files, otherwise
         # stage 2+ compiles will fail without this
